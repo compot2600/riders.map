@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>riders.map — Scooter Spots</title>
+    
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; background-color: #000000; }
+        #map { width: 100%; height: 100%; z-index: 1; }
+        .glass { 
+            background: rgba(10, 10, 10, 0.65); 
+            backdrop-filter: blur(25px) saturate(160%); 
+            -webkit-backdrop-filter: blur(25px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+        }
+        .leaflet-control-attribution { display: none !important; }
+        .leaflet-popup-content-wrapper {
+            background: rgba(15, 15, 15, 0.75) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+            border-radius: 20px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important;
+            padding: 4px;
+        }
+        .leaflet-popup-tip {
+            background: rgba(15, 15, 15, 0.75) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        .leaflet-marker-icon {
+            filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) !important;
+        }
+    </style>
+</head>
+<body class="text-white selection:bg-white selection:text-black">
+
+    <div id="map"></div>
+
+    <div class="fixed top-4 left-4 right-4 z-50 flex justify-between items-center p-3 rounded-2xl glass shadow-2xl">
+        <div class="flex items-center gap-3">
+            <span class="text-lg font-black tracking-tighter text-white">riders.map</span>
+            <div class="h-4 w-[1px] bg-zinc-800"></div>
+            <div class="flex items-center gap-1.5">
+                <span id="liveDot" class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                <span id="userStatus" class="text-xs text-zinc-400 font-medium tracking-wide">Guest Mode</span>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Saved</button>
+            <button id="authBtn" onclick="openAuthModal()" class="bg-white hover:bg-zinc-200 text-black text-xs px-4 py-1.5 rounded-xl font-bold transition shadow-lg">Sign In / Up</button>
+        </div>
+    </div>
+
+    <button id="addSpotBtn" onclick="openAddSpotModal()" class="hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-white hover:bg-zinc-200 text-black rounded-full flex items-center justify-center text-3xl font-light shadow-2xl transition-all transform hover:scale-105 active:scale-95 border border-white/20">+</button>
+
+    <div id="authModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="w-full max-w-sm p-6 rounded-3xl glass shadow-2xl">
+            <div class="flex border-b border-zinc-800 mb-4 text-sm font-bold">
+                <button id="tabSignIn" onclick="switchAuthTab('signin')" class="flex-1 pb-2 border-b-2 border-white text-white">Sign In</button>
+                <button id="tabSignUp" onclick="switchAuthTab('signup')" class="flex-1 pb-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300">Sign Up</button>
+            </div>
+            <input type="text" id="usernameInput" placeholder="Username" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-sm text-white mb-3 focus:outline-none focus:border-white transition">
+            <input type="password" id="passwordInput" placeholder="Password" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-sm text-white mb-2 focus:outline-none focus:border-white transition">
+            <p id="authError" class="text-zinc-400 text-xs font-semibold mb-3 hidden"></p>
+            <button onclick="handleAuth()" class="w-full bg-white hover:bg-zinc-200 text-black font-bold p-3 rounded-xl text-sm transition mb-2 shadow-lg">Submit</button>
+            <button onclick="closeModal('authModal')" class="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium p-3 rounded-xl text-sm transition">Explore as Guest</button>
+        </div>
+    </div>
+
+    <div id="addSpotModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="w-full max-w-sm p-6 rounded-3xl glass shadow-2xl">
+            <h2 class="text-xl font-black tracking-tight mb-1 text-white">Add New Spot</h2>
+            <p class="text-zinc-400 text-xs mb-4">⚠️ Unverified spots expire in 5 days unless verified via Google Form!</p>
+            <input type="text" id="spotNameInput" placeholder="Spot Name (e.g., Main Plaza)" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl p-3 text-sm text-white mb-4 focus:outline-none focus:border-white transition">
+            <p class="text-zinc-400 text-xs mb-2">Step 1: Long press on the map to set location, or use map center.</p>
+            <div id="coordsIndicator" class="text-xs text-zinc-300 font-mono mb-4 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">Location: Map Center (Default)</div>
+            <button onclick="handleCreateSpot()" class="w-full bg-white hover:bg-zinc-200 text-black font-bold p-3 rounded-xl text-sm transition mb-2">Create Spot</button>
+            <button onclick="closeModal('addSpotModal')" class="w-full bg-zinc-900 hover:bg-zinc-700 text-zinc-400 font-medium p-3 rounded-xl text-sm transition">Cancel</button>
+        </div>
+    </div>
+
+    <div id="savedModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="w-full max-w-sm p-6 rounded-3xl glass shadow-2xl max-h-[75vh] flex flex-col">
+            <h2 class="text-xl font-black tracking-tight text-white mb-4">Saved Spots</h2>
+            <div id="savedList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-sm"></div>
+            <button onclick="closeModal('savedModal')" class="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium p-3 rounded-xl text-sm transition mt-4">Close</button>
+        </div>
+    </div>
+
+    <div id="photoViewerModal" class="fixed inset-0 z-[200] hidden flex flex-col items-center justify-center p-4 bg-black/90 backdrop-blur-lg animate-fade-in" onclick="closeModal('photoViewerModal')">
+        <button class="absolute top-6 right-6 text-white text-3xl font-light hover:text-zinc-400 transition focus:outline-none">&times;</button>
+        <div class="max-w-4xl max-h-[85vh] flex items-center justify-center" onclick="event.stopPropagation()">
+            <img id="viewedImage" src="" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-zinc-800/50">
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBe6oY-YNkeM8Yi_HUWe8qfNBeM2v3oCtA",
+            authDomain: "riders-map-47.firebaseapp.com",
+            projectId: "riders-map-47",
+            storageBucket: "riders-map-47.firebasestorage.app",
+            messagingSenderId: "21069707310",
+            appId: "1:21069707310:web:bd48103fca0be95b5547bf",
+            measurementId: "G-25B6W7C1VH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+
+        const FIREBASE_URL = `https://${firebaseConfig.projectId}-default-rtdb.europe-west1.firebasedatabase.app`;
+
+        window.openAuthModal = openAuthModal;
+        window.openAddSpotModal = openAddSpotModal;
+        window.closeModal = closeModal;
+        window.switchAuthTab = switchAuthTab;
+        window.handleAuth = handleAuth;
+        window.handleCreateSpot = handleCreateSpot;
+        window.toggleSavedModal = toggleSavedModal;
+        window.toggleSaveSpot = toggleSaveSpot;
+        window.flyToSpot = flyToSpot;
+        window.handleFileSelect = handleFileSelect;
+        window.submitPopupReview = submitPopupReview;
+        window.openPhotoViewer = openPhotoViewer;
+        window.adminApproveInClick = adminApproveInClick;
+        window.adminDeleteInClick = adminDeleteInClick;
+
+        let map, currentMarkerCoords = null, activeSpotId = null;
+        let currentUser = JSON.parse(localStorage.getItem('scooteUser')) || null;
+        let authMode = 'signin'; 
+        let tempBase64Photo = "";
+        
+        let spots = [];
+        let savedSpots = JSON.parse(localStorage.getItem('savedSpotsData')) || {};
+
+        async function loadSpotsFromFirebase() {
+            try {
+                const response = await fetch(`${FIREBASE_URL}/spots.json`);
+                const data = await response.json();
+                if (data) {
+                    spots = Object.keys(data).map(key => ({ firebaseKey: key, ...data[key] }));
+                } else {
+                    spots = [];
+                }
+                renderMarkers();
+            } catch (e) {
+                console.error("Database loading error:", e);
+            }
+        }
+
+        async function syncSpotToFirebase(spot) {
+            if (spot.firebaseKey) {
+                await fetch(`${FIREBASE_URL}/spots/${spot.firebaseKey}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(spot)
+                });
+            } else {
+                const response = await fetch(`${FIREBASE_URL}/spots.json`, {
+                    method: 'POST',
+                    body: JSON.stringify(spot)
+                });
+                const resData = await response.json();
+                spot.firebaseKey = resData.name;
+            }
+        }
+
+        async function deleteSpotFromFirebase(firebaseKey) {
+            await fetch(`${FIREBASE_URL}/spots/${firebaseKey}.json`, { method: 'DELETE' });
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([55.7558, 37.6173], 12);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            document.getElementById('map').style.filter = "grayscale(100%) contrast(110%)";
+            
+            map.on('contextmenu', function(e) {
+                if(!currentUser) return;
+                currentMarkerCoords = e.latlng;
+                document.getElementById('coordsIndicator').innerText = `Location Picked: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+                openAddSpotModal();
+            });
+
+            loadSpotsFromFirebase();
+            setInterval(loadSpotsFromFirebase, 10000);
+        }
+
+        function renderMarkers() {
+            map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
+
+            const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+            spots = spots.filter(spot => {
+                if (!spot.approved && (Date.now() - spot.createdAt > fiveDaysInMs)) {
+                    if (spot.firebaseKey) deleteSpotFromFirebase(spot.firebaseKey);
+                    return false;
+                }
+                return true;
+            });
+
+            spots.forEach(spot => {
+                const marker = L.marker([spot.lat, spot.lng]).addTo(map);
+                
+                let reviewsHTML = '';
+                if(spot.reviews) {
+                    Object.values(spot.reviews).forEach(r => {
+                        reviewsHTML += `
+                            <div class="mt-2 border-t border-zinc-800 pt-1.5 text-[11px]">
+                                <div class="flex justify-between text-zinc-400 font-bold"><span>@${r.user}</span><span>${"★".repeat(r.rating)}</span></div>
+                                <p class="text-zinc-200 m-0">${r.text}</p>
+                                ${r.photo ? `<img src="${r.photo}" onclick="openPhotoViewer('${r.photo}')" class="mt-1 rounded-lg max-h-20 w-full object-cover border border-zinc-800 cursor-pointer hover:opacity-80 transition"/>` : ''}
+                            </div>`;
+                    });
+                }
+
+                let isSaved = false;
+                if (currentUser && savedSpots[currentUser]) {
+                    isSaved = savedSpots[currentUser].includes(spot.id);
+                }
+
+                let popupContent = `
+                    <div class="w-56 p-1 text-white">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-1.5">
+                                <h3 class="font-black text-sm tracking-tight m-0">${spot.name}</h3>
+                                ${currentUser ? `
+                                    <button onclick="toggleSaveSpot(${spot.id})" class="text-xs focus:outline-none transition transform active:scale-75" title="Save Spot">
+                                        ${isSaved ? '★' : '☆'}
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded ${spot.approved ? 'bg-zinc-800 text-white' : 'bg-zinc-900 text-zinc-500'}">${spot.approved ? 'Verified' : 'Pending'}</span>
+                        </div>
+                        <p class="text-zinc-500 text-[10px] m-0 mt-0.5">By @${spot.creator}</p>
+                        
+                        ${!spot.approved ? `<p class="text-zinc-400 text-[10px] mt-1 bg-zinc-900/80 p-1 rounded border border-zinc-800">Proof Link: <a href="https://forms.gle/ZR2rf6i5bfqt2AEA7" target="_blank" class="underline text-white font-bold">Submit Form</a></p>` : ''}
+                        
+                        ${currentUser && currentUser.toLowerCase() === 'riders.map' ? `
+                            <div class="flex gap-1 mt-2 border-t border-zinc-800 pt-2">
+                                ${!spot.approved ? `<button onclick="adminApproveInClick('${spot.firebaseKey}')" class="flex-1 bg-white text-black font-bold text-[10px] py-1 rounded hover:bg-zinc-200 transition">✓ Verify</button>` : ''}
+                                <button onclick="adminDeleteInClick('${spot.firebaseKey}')" class="flex-1 bg-zinc-800 text-zinc-300 font-bold text-[10px] py-1 rounded hover:bg-zinc-700 transition">✕ Delete</button>
+                            </div>
+                        ` : ''}
+
+                        <div class="max-h-28 overflow-y-auto mt-2 pr-0.5">${reviewsHTML || '<p class="text-zinc-600 text-[11px] m-0 mt-1">No reviews yet.</p>'}</div>
+
+                        ${currentUser ? `
+                            <div class="mt-2 pt-2 border-t border-zinc-800">
+                                <select id="popRating-${spot.id}" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[10px] p-1 text-white mb-1 focus:outline-none">
+                                    <option value="5">★★★★★ (5/5)</option><option value="4">★★★★ (4/5)</option><option value="3">★★★ (3/5)</option><option value="2">★★ (2/5)</option><option value="1">★ (1/5)</option>
+                                </select>
+                                <textarea id="popText-${spot.id}" placeholder="Write a review..." class="w-full h-10 bg-zinc-900 border border-zinc-800 rounded text-[10px] p-1 text-white mb-1 focus:outline-none resize-none"></textarea>
+                                
+                                <label class="block w-full text-center bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[9px] text-zinc-400 py-1 rounded cursor-pointer mb-1 transition">
+                                    📁 Choose File Photo
+                                    <input type="file" id="popFile-${spot.id}" accept="image/*" class="hidden" onchange="handleFileSelect(event, ${spot.id})">
+                                </label>
+                                <div id="filePreviewContainer-${spot.id}" class="hidden mb-1"><img id="filePreview-${spot.id}" class="h-10 w-full object-cover rounded border border-zinc-700"/></div>
+
+                                <button onclick="submitPopupReview('${spot.firebaseKey}', ${spot.id})" class="w-full bg-white text-black font-bold py-1 rounded text-[10px] hover:bg-zinc-200 transition">Send</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+            });
+        }
+
+        function openPhotoViewer(photoSrc) {
+            document.getElementById('viewedImage').src = photoSrc;
+            document.getElementById('photoViewerModal').style.display = 'flex';
+        }
+
+        function toggleSaveSpot(spotId) {
+            if (!currentUser) return;
+            if (!savedSpots[currentUser]) savedSpots[currentUser] = [];
+            
+            const index = savedSpots[currentUser].indexOf(spotId);
+            if (index > -1) {
+                savedSpots[currentUser].splice(index, 1);
+            } else {
+                savedSpots[currentUser].push(spotId);
+            }
+            
+            localStorage.setItem('savedSpotsData', JSON.stringify(savedSpots));
+            map.closePopup();
+            renderMarkers();
+        }
+
+        function toggleSavedModal() {
+            const modal = document.getElementById('savedModal');
+            const list = document.getElementById('savedList');
+            list.innerHTML = '';
+
+            if (!currentUser || !savedSpots[currentUser] || savedSpots[currentUser].length === 0) {
+                list.innerHTML = '<p class="text-zinc-500 text-xs">No saved spots yet.</p>';
+            } else {
+                savedSpots[currentUser].forEach(id => {
+                    const spot = spots.find(s => s.id === id);
+                    if (spot) {
+                        list.innerHTML += `
+                            <div class="flex justify-between items-center p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl">
+                                <div onclick="flyToSpot(${spot.lat}, ${spot.lng})" class="cursor-pointer flex-1">
+                                    <p class="font-bold text-white text-xs">${spot.name}</p>
+                                    <p class="text-[10px] text-zinc-500">By @${spot.creator}</p>
+                                </div>
+                                <button onclick="toggleSaveSpot(${spot.id}); toggleSavedModal(); toggleSavedModal();" class="text-xs text-zinc-400 hover:text-white ml-2">✕</button>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            modal.style.display = 'flex';
+        }
+
+        function flyToSpot(lat, lng) {
+            map.flyTo([lat, lng], 15);
+            closeModal('savedModal');
+        }
+
+        function handleFileSelect(event, spotId) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                tempBase64Photo = e.target.result;
+                document.getElementById(`filePreview-${spotId}`).src = tempBase64Photo;
+                document.getElementById(`filePreviewContainer-${spotId}`).classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+
+        async function submitPopupReview(firebaseKey, spotId) {
+            const text = document.getElementById(`popText-${spotId}`).value.trim();
+            const rating = parseInt(document.getElementById(`popRating-${spotId}`).value);
+            if(!text) return alert("Write a review text!");
+
+            const spot = spots.find(s => s.firebaseKey === firebaseKey);
+            if(spot) {
+                if(!spot.reviews) spot.reviews = [];
+                spot.reviews.push({ user: currentUser, rating: rating, text: text, photo: tempBase64Photo });
+                
+                tempBase64Photo = ""; 
+                map.closePopup();
+                await syncSpotToFirebase(spot);
+                loadSpotsFromFirebase();
+                alert("Review posted!");
+            }
+        }
+
+        async function adminApproveInClick(firebaseKey) {
+            const spot = spots.find(s => s.firebaseKey === firebaseKey);
+            if(spot) {
+                spot.approved = true;
+                map.closePopup();
+                await syncSpotToFirebase(spot);
+                loadSpotsFromFirebase();
+            }
+        }
+
+        async function adminDeleteInClick(firebaseKey) {
+            if(confirm("Delete this spot permanently?")) {
+                map.closePopup();
+                await deleteSpotFromFirebase(firebaseKey);
+                loadSpotsFromFirebase();
+            }
+        }
+
+        function openAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+        function openAddSpotModal() { 
+            if(!currentMarkerCoords) {
+                const center = map.getCenter();
+                currentMarkerCoords = { lat: center.lat, lng: center.lng };
+            }
+            document.getElementById('addSpotModal').style.display = 'flex'; 
+        }
+        function closeModal(id) { 
+            document.getElementById(id).style.display = 'none'; 
+            if(id === 'addSpotModal') currentMarkerCoords = null;
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === "Escape") {
+                closeModal('authModal');
+                closeModal('addSpotModal');
+                closeModal('savedModal');
+                closeModal('photoViewerModal');
+            }
+        });
+
+        function switchAuthTab(mode) {
+            authMode = mode;
+            const tabIn = document.getElementById('tabSignIn');
+            const tabUp = document.getElementById('tabSignUp');
+            document.getElementById('authError').classList.add('hidden');
+            if (mode === 'signin') {
+                tabIn.className = "flex-1 pb-2 border-b-2 border-white text-white font-bold text-center";
+                tabUp.className = "flex-1 pb-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300 text-center";
+            } else {
+                tabUp.className = "flex-1 pb-2 border-b-2 border-white text-white font-bold text-center";
+                tabIn.className = "flex-1 pb-2 border-b-2 border-transparent text-zinc-500 hover:text-zinc-300 text-center";
+            }
+        }
+
+        function handleAuth() {
+            const user = document.getElementById('usernameInput').value.trim();
+            const pass = document.getElementById('passwordInput').value.trim();
+            if(!user || !pass) return showAuthError("Fill in all fields!");
+
+            const adminUser = "riders.map";
+            const adminPass = "Th3B0ys@r3C00l";
+
+            let registeredUsers = JSON.parse(localStorage.getItem('scooterUsers')) || [];
+
+            if (authMode === 'signup') {
+                if (user.toLowerCase() === adminUser.toLowerCase() || registeredUsers.find(u => u.username.toLowerCase() === user.toLowerCase())) {
+                    showAuthError("❌ Username already taken!");
+                    return;
+                }
+                registeredUsers.push({ username: user, password: pass });
+                localStorage.setItem('scooterUsers', JSON.stringify(registeredUsers));
+                alert("Account created!");
+            } else {
+                if (user.toLowerCase() === adminUser.toLowerCase()) {
+                    if (pass !== adminPass) return showAuthError("❌ Invalid admin password!");
+                } else {
+                    const existingUser = registeredUsers.find(u => u.username.toLowerCase() === user.toLowerCase());
+                    if (!existingUser || existingUser.password !== pass) return showAuthError("❌ Invalid login details!");
+                }
+            }
+
+            currentUser = user;
+            localStorage.setItem('scooteUser', JSON.stringify(currentUser));
+            updateAuthUI();
+            closeModal('authModal');
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('passwordInput').value = '';
+        }
+
+        function showAuthError(msg) {
+            const errBox = document.getElementById('authError');
+            errBox.innerText = msg; errBox.classList.remove('hidden');
+        }
+
+        function updateAuthUI() {
+            if(currentUser) {
+                document.getElementById('userStatus').innerText = currentUser;
+                document.getElementById('authBtn').innerText = "Log Out";
+                document.getElementById('authBtn').onclick = () => { currentUser = null; localStorage.removeItem('scooteUser'); updateAuthUI(); };
+                document.getElementById('addSpotBtn').classList.remove('hidden');
+                document.getElementById('savedBtn').classList.remove('hidden');
+                document.getElementById('liveDot').className = "w-2 h-2 rounded-full bg-white animate-pulse";
+            } else {
+                document.getElementById('userStatus').innerText = "Guest Mode";
+                document.getElementById('authBtn').innerText = "Sign In / Up";
+                document.getElementById('authBtn').onclick = openAuthModal;
+                document.getElementById('addSpotBtn').classList.add('hidden');
+                document.getElementById('savedBtn').classList.add('hidden');
+                document.getElementById('liveDot').className = "w-2 h-2 rounded-full bg-zinc-600";
+            }
+            renderMarkers();
+        }
+
+        async function handleCreateSpot() {
+            const name = document.getElementById('spotNameInput').value.trim();
+            if(!name) return alert("Enter spot name!");
+
+            const newSpot = {
+                id: Date.now(),
+                lat: currentMarkerCoords.lat,
+                lng: currentMarkerCoords.lng,
+                name: name,
+                creator: currentUser,
+                createdAt: Date.now(),
+                approved: (currentUser.toLowerCase() === 'riders.map'), 
+                reviews: []
+            };
+
+            closeModal('addSpotModal');
+            document.getElementById('spotNameInput').value = '';
+            
+            await syncSpotToFirebase(newSpot);
+            loadSpotsFromFirebase();
+            alert("Spot created!");
+        }
+
+        window.onload = () => { initMap(); updateAuthUI(); };
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(function(err) {
+                console.error('ServiceWorker registration failed: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

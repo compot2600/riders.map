@@ -7,3 +7,4 @@ Perfect app/website for riders!
 -Add spots
 -Save spots
 -Write reviews
+ 

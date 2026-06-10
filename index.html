@@ -154,6 +154,7 @@
             </label>
             
             <button onclick="saveProfileChanges()" class="w-full bg-white hover:bg-zinc-200 text-black font-bold p-3 rounded-xl text-sm transition mb-2">Save Profile</button>
+            <button onclick="deleteAccount()" class="w-full bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/50 font-bold p-3 rounded-xl text-sm transition mb-4">Delete Account</button>
             <button onclick="closeModal('profileModal')" class="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium p-3 rounded-xl text-sm transition">Close</button>
         </div>
     </div>
@@ -224,6 +225,7 @@
         window.openLeaderboardModal = openLeaderboardModal;
         window.openProfileModal = openProfileModal;
         window.saveProfileChanges = saveProfileChanges;
+        window.deleteAccount = deleteAccount;
         window.openEditSpotModal = openEditSpotModal;
         window.deleteReview = deleteReview;
 
@@ -566,6 +568,38 @@
             await customAlert("Profile updated!");
         }
 
+        async function deleteAccount() {
+            if (!currentUser) return;
+            
+            if (currentUser.toLowerCase() === 'riders.map') {
+                return customAlert("Main admin account cannot be deleted!");
+            }
+
+            const confirmed = await customConfirm("Are you completely sure you want to DELETE your account? This action cannot be undone.");
+            if (!confirmed) return;
+
+            try {
+                // 1. Удаляем глобальные настройки профиля в Firebase
+                await fetch(`${FIREBASE_URL}/profiles/${currentUser}.json`, { method: 'DELETE' });
+                
+                // 2. Удаляем запись из таблицы зарегистрированных аккаунтов Firebase
+                await fetch(`${FIREBASE_URL}/users/${currentUser}.json`, { method: 'DELETE' });
+
+                // 3. Сбрасываем сессию в браузере
+                currentUser = null;
+                localStorage.removeItem('scooteUser');
+                
+                closeModal('profileModal');
+                updateAuthUI();
+                updateHeaderProfileUI();
+                
+                await customAlert("Your account has been permanently deleted.");
+            } catch(e) {
+                console.error(e);
+                customAlert("An error occurred while deleting account.");
+            }
+        }
+
         function updateHeaderProfileUI() {
             if(currentUser) {
                 const prof = profiles[currentUser] || {};
@@ -759,29 +793,51 @@
         }
 
         async function handleAuth() {
-            const user = document.getElementById('usernameInput').value.trim().replace(/[^a-zA-Z0-9]/g, ""); 
+            const user = document.getElementById('usernameInput').value.trim().replace(/[^a-zA-Z0-9\.]/g, ""); 
             const pass = document.getElementById('passwordInput').value.trim();
             if(!user || !pass) return showAuthError("Fill in all fields!");
 
             const adminUser = "riders.map";
             const adminPass = "Th3B0ys@r3C00l";
 
-            let registeredUsers = JSON.parse(localStorage.getItem('scooterUsers')) || [];
+            // Тянем актуальный список аккаунтов прямо из Firebase для проверки уникальности
+            let firebaseUsers = {};
+            try {
+                const uRes = await fetch(`${FIREBASE_URL}/users.json`);
+                firebaseUsers = (await uRes.json()) || {};
+            } catch(e) {
+                console.error("Error fetching remote user list:", e);
+            }
 
             if (authMode === 'signup') {
-                if (user.toLowerCase() === adminUser.toLowerCase() || registeredUsers.find(u => u.username.toLowerCase() === user.toLowerCase())) {
+                // Защита: нельзя занять ник админа или уже существующий ник
+                if (user.toLowerCase() === adminUser.toLowerCase() || firebaseUsers[user]) {
                     showAuthError("Username already taken!");
                     return;
                 }
-                registeredUsers.push({ username: user, password: pass });
-                localStorage.setItem('scooterUsers', JSON.stringify(registeredUsers));
-                await customAlert("Account created!");
+                
+                // Сохраняем связку Логин-Пароль в облако Firebase
+                await fetch(`${FIREBASE_URL}/users/${user}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ password: pass })
+                });
+
+                // Создаем для него пустой стартовый профиль
+                await fetch(`${FIREBASE_URL}/profiles/${user}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ nickname: user, avatarUrl: DEFAULT_AVATAR })
+                });
+
+                await customAlert("Account created successfully!");
             } else {
+                // Процесс Sign In
                 if (user.toLowerCase() === adminUser.toLowerCase()) {
                     if (pass !== adminPass) return showAuthError("Invalid admin password!");
                 } else {
-                    const existingUser = registeredUsers.find(u => u.username.toLowerCase() === user.toLowerCase());
-                    if (!existingUser || existingUser.password !== pass) return showAuthError("Invalid login details!");
+                    const existingUser = firebaseUsers[user];
+                    if (!existingUser || existingUser.password !== pass) {
+                        return showAuthError("Invalid login details!");
+                    }
                 }
             }
 

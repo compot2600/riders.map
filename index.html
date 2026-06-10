@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>riders.map — Scooter & Skate Spots</title>
     
-    <link rel="icon" type="image/png" href="icon.png">
+    <link class="content-icon" rel="icon" type="image/png" href="icon.png">
     <link rel="manifest" href="manifest.json">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -45,30 +45,46 @@
         .map-picking-mode {
             cursor: crosshair !important;
         }
+
+        /* Фикс для адаптивного отображения кнопок в дополнительной строке на мобилках */
+        .buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        @media (max-width: 640px) {
+            .buttons-container button, .buttons-container a {
+                flex: 1 1 auto;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body class="text-white selection:bg-white selection:text-black">
 
     <div id="map"></div>
 
-    <div class="fixed top-4 left-4 right-4 z-50 flex flex-wrap justify-between items-center p-3 gap-y-2 rounded-2xl glass shadow-2xl">
-        <div class="flex items-center gap-3">
-            <span class="text-lg font-black tracking-tighter text-white">riders.map</span>
-            <div class="h-4 w-[1px] bg-zinc-800"></div>
-            <div class="flex items-center gap-1.5 cursor-pointer" onclick="openProfileModal()">
-                <img id="userAvatarHeader" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2371717a'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z'/></svg>" class="w-6 h-6 rounded-full bg-zinc-900 border border-zinc-800 object-cover">
-                <span id="userStatus" class="text-xs text-zinc-400 font-medium tracking-wide">Guest Mode</span>
+    <div class="fixed top-4 left-4 right-4 z-50 flex flex-col sm:flex-row justify-between items-stretch sm:items-center p-3 gap-3 rounded-2xl glass shadow-2xl">
+        <div class="flex items-center justify-between w-full sm:w-auto gap-3">
+            <div class="flex items-center gap-2">
+                <span class="text-lg font-black tracking-tighter text-white">riders.map</span>
+                <div class="h-4 w-[1px] bg-zinc-800"></div>
+                <div class="flex items-center gap-1.5 cursor-pointer" onclick="openProfileModal()">
+                    <img id="userAvatarHeader" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2371717a'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z'/></svg>" class="w-6 h-6 rounded-full bg-zinc-900 border border-zinc-800 object-cover">
+                    <span id="userStatus" class="text-xs text-zinc-400 font-medium tracking-wide max-w-[100px] truncate">Guest Mode</span>
+                </div>
             </div>
         </div>
-        <div class="flex flex-wrap gap-1.5 sm:gap-2">
-            <a href="mailto:compot2600@gmail.com" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-xl font-bold border border-zinc-800 transition flex items-center">Contact</a>
-            <button id="leaderboardBtn" onclick="openLeaderboardModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Leaderboard</button>
-            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] sm:text-xs px-2.5 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Saved</button>
-            <button id="authBtn" onclick="openAuthModal()" class="bg-white hover:bg-zinc-200 text-black text-[11px] sm:text-xs px-3 sm:px-4 py-1.5 rounded-xl font-bold transition shadow-lg">Sign In / Up</button>
+        
+        <div class="buttons-container w-full sm:w-auto">
+            <a href="mailto:compot2600@gmail.com" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[11px] px-2.5 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Contact</a>
+            <button id="leaderboardBtn" onclick="openLeaderboardModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] px-2.5 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Leaderboard</button>
+            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] px-2.5 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Saved</button>
+            <button id="authBtn" onclick="openAuthModal()" class="bg-white hover:bg-zinc-200 text-black text-[11px] px-3 py-1.5 rounded-xl font-bold transition shadow-lg">Sign In / Up</button>
         </div>
     </div>
 
-    <div id="locationPickerHint" class="hidden fixed top-32 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-bold text-xs shadow-2xl tracking-wide flex items-center gap-2 animate-bounce">
+    <div id="locationPickerHint" class="hidden fixed top-36 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 bg-white text-black px-4 py-2.5 rounded-xl font-bold text-xs shadow-2xl tracking-wide flex items-center gap-2 animate-bounce">
         <span>Click anywhere on the map to set spot location...</span>
         <button onclick="cancelLocationPicking()" class="text-zinc-400 hover:text-black font-black ml-1">Cancel</button>
     </div>
@@ -201,7 +217,6 @@
         const analytics = getAnalytics(app);
 
         const FIREBASE_URL = `https://${firebaseConfig.projectId}-default-rtdb.europe-west1.firebasedatabase.app`;
-
         const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2371717a'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z'/></svg>";
 
         window.openAuthModal = openAuthModal;
@@ -274,11 +289,8 @@
         function getStarsHTML(rating) {
             let stars = '';
             for (let i = 1; i <= 5; i++) {
-                if (i <= rating) {
-                    stars += '<span class="text-amber-400">★</span>';
-                } else {
-                    stars += '<span class="text-zinc-600">★</span>';
-                }
+                if (i <= rating) stars += '<span class="text-amber-400">★</span>';
+                else stars += '<span class="text-zinc-600">★</span>';
             }
             return stars;
         }
@@ -327,9 +339,7 @@
             document.getElementById('map').style.filter = "grayscale(100%) contrast(110%)";
             
             map.on('click', function(e) {
-                if (isPickingLocation) {
-                    executeLocationPicked(e.latlng);
-                }
+                if (isPickingLocation) executeLocationPicked(e.latlng);
             });
 
             map.on('contextmenu', function(e) {
@@ -379,6 +389,19 @@
         }
 
         function renderMarkers() {
+            // Умная проверка: смотрим, открыт ли сейчас какой-то попап, и вытягиваем ID спота
+            let openSpotId = null;
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker && layer.getPopup() && layer.getPopup().isOpen()) {
+                    const html = layer.getPopup().getContent();
+                    const match = html.match(/id="popRating-(\d+)"/);
+                    if (match && match[1]) {
+                        openSpotId = parseInt(match[1]);
+                    }
+                }
+            });
+
+            // Очищаем старые маркеры
             map.eachLayer((layer) => { if (layer instanceof L.Marker) map.removeLayer(layer); });
 
             const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
@@ -389,7 +412,6 @@
                 }
                 
                 const spotType = spot.type || 'both';
-
                 if (currentFilter !== 'all') {
                     if (spotType !== currentFilter && spotType !== 'both') return false;
                 }
@@ -500,6 +522,11 @@
                     autoClose: false,
                     closeOnClick: false
                 });
+
+                // Если эта метка была открыта до обновления, возвращаем её статус обратно
+                if (openSpotId && spot.id === openSpotId) {
+                    setTimeout(() => { marker.openPopup(); }, 100);
+                }
             });
         }
 
@@ -570,7 +597,6 @@
 
         async function deleteAccount() {
             if (!currentUser) return;
-            
             if (currentUser.toLowerCase() === 'riders.map') {
                 return customAlert("Main admin account cannot be deleted!");
             }
@@ -579,13 +605,9 @@
             if (!confirmed) return;
 
             try {
-                // 1. Удаляем глобальные настройки профиля в Firebase
                 await fetch(`${FIREBASE_URL}/profiles/${currentUser}.json`, { method: 'DELETE' });
-                
-                // 2. Удаляем запись из таблицы зарегистрированных аккаунтов Firebase
                 await fetch(`${FIREBASE_URL}/users/${currentUser}.json`, { method: 'DELETE' });
 
-                // 3. Сбрасываем сессию в браузере
                 currentUser = null;
                 localStorage.removeItem('scooteUser');
                 
@@ -659,11 +681,8 @@
             if (!savedSpots[currentUser]) savedSpots[currentUser] = [];
             
             const index = savedSpots[currentUser].indexOf(spotId);
-            if (index > -1) {
-                savedSpots[currentUser].splice(index, 1);
-            } else {
-                savedSpots[currentUser].push(spotId);
-            }
+            if (index > -1) savedSpots[currentUser].splice(index, 1);
+            else savedSpots[currentUser].push(spotId);
             
             localStorage.setItem('savedSpotsData', JSON.stringify(savedSpots));
             map.closePopup();
@@ -751,9 +770,7 @@
         }
 
         function openAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
-        function openAddSpotModal() { 
-            document.getElementById('addSpotModal').style.display = 'flex'; 
-        }
+        function openAddSpotModal() { document.getElementById('addSpotModal').style.display = 'flex'; }
         function closeModal(id) { 
             document.getElementById(id).style.display = 'none'; 
             if(id === 'addSpotModal') {
@@ -800,7 +817,6 @@
             const adminUser = "riders.map";
             const adminPass = "Th3B0ys@r3C00l";
 
-            // Тянем актуальный список аккаунтов прямо из Firebase для проверки уникальности
             let firebaseUsers = {};
             try {
                 const uRes = await fetch(`${FIREBASE_URL}/users.json`);
@@ -810,19 +826,16 @@
             }
 
             if (authMode === 'signup') {
-                // Защита: нельзя занять ник админа или уже существующий ник
                 if (user.toLowerCase() === adminUser.toLowerCase() || firebaseUsers[user]) {
                     showAuthError("Username already taken!");
                     return;
                 }
                 
-                // Сохраняем связку Логин-Пароль в облако Firebase
                 await fetch(`${FIREBASE_URL}/users/${user}.json`, {
                     method: 'PUT',
                     body: JSON.stringify({ password: pass })
                 });
 
-                // Создаем для него пустой стартовый профиль
                 await fetch(`${FIREBASE_URL}/profiles/${user}.json`, {
                     method: 'PUT',
                     body: JSON.stringify({ nickname: user, avatarUrl: DEFAULT_AVATAR })
@@ -830,7 +843,6 @@
 
                 await customAlert("Account created successfully!");
             } else {
-                // Процесс Sign In
                 if (user.toLowerCase() === adminUser.toLowerCase()) {
                     if (pass !== adminPass) return showAuthError("Invalid admin password!");
                 } else {

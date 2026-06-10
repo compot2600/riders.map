@@ -63,7 +63,7 @@
         <div class="flex gap-2">
             <a href="mailto:compot2600@gmail.com" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition flex items-center">Contact</a>
             <button id="leaderboardBtn" onclick="openLeaderboardModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Leaderboard</button>
-            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Saved</button>
+            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">★ Saved</button>
             <button id="authBtn" onclick="openAuthModal()" class="bg-white hover:bg-zinc-200 text-black text-xs px-4 py-1.5 rounded-xl font-bold transition shadow-lg">Sign In / Up</button>
         </div>
     </div>
@@ -169,7 +169,7 @@
 
     <div id="savedModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
         <div class="w-full max-w-sm p-6 rounded-3xl glass shadow-2xl max-h-[75vh] flex flex-col">
-            <h2 class="text-xl font-black tracking-tight text-white mb-4">Saved Spots</h2>
+            <h2 class="text-xl font-black tracking-tight text-white mb-4">★ Saved Spots</h2>
             <div id="savedList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-sm"></div>
             <button onclick="closeModal('savedModal')" class="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium p-3 rounded-xl text-sm transition mt-4">Close</button>
         </div>
@@ -269,7 +269,6 @@
             });
         }
 
-        // Функция генерации звёзд на основе рейтинга
         function getStarsHTML(rating) {
             let stars = '';
             for (let i = 1; i <= 5; i++) {
@@ -448,7 +447,7 @@
                                 <h3 class="font-black text-sm tracking-tight m-0">${spot.name}</h3>
                                 ${currentUser ? `
                                     <button onclick="toggleSaveSpot(${spot.id})" class="text-xs focus:outline-none transition transform active:scale-75 font-bold" title="Save Spot">
-                                        ${isSaved ? '[Saved]' : '[Save]'}
+                                        ${isSaved ? '★' : '☆'}
                                     </button>
                                 ` : ''}
                             </div>
@@ -475,7 +474,11 @@
                         ${currentUser ? `
                             <div class="mt-2 pt-2 border-t border-zinc-800">
                                 <select id="popRating-${spot.id}" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[10px] p-1 text-white mb-1 focus:outline-none">
-                                    <option value="5">Score: 5/5</option><option value="4">Score: 4/5</option><option value="3">Score: 3/5</option><option value="2">Score: 2/5</option><option value="1">Score: 1/5</option>
+                                    <option value="5">★★★★★ (5/5)</option>
+                                    <option value="4">★★★★☆ (4/5)</option>
+                                    <option value="3">★★★☆☆ (3/5)</option>
+                                    <option value="2">★★☆☆☆ (2/5)</option>
+                                    <option value="1">★☆☆☆☆ (1/5)</option>
                                 </select>
                                 <textarea id="popText-${spot.id}" placeholder="Write a review..." class="w-full h-10 bg-zinc-900 border border-zinc-800 rounded text-[10px] p-1 text-white mb-1 focus:outline-none resize-none"></textarea>
                                 
@@ -855,4 +858,5 @@
         }
     </script>
 </body>
+</html>
 </html>

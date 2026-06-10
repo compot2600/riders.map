@@ -63,7 +63,7 @@
         <div class="flex gap-2">
             <a href="mailto:compot2600@gmail.com" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition flex items-center">Contact</a>
             <button id="leaderboardBtn" onclick="openLeaderboardModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Leaderboard</button>
-            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">★ Saved</button>
+            <button id="savedBtn" onclick="toggleSavedModal()" class="hidden bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3 py-1.5 rounded-xl font-bold border border-zinc-800 transition">Saved</button>
             <button id="authBtn" onclick="openAuthModal()" class="bg-white hover:bg-zinc-200 text-black text-xs px-4 py-1.5 rounded-xl font-bold transition shadow-lg">Sign In / Up</button>
         </div>
     </div>
@@ -169,7 +169,7 @@
 
     <div id="savedModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
         <div class="w-full max-w-sm p-6 rounded-3xl glass shadow-2xl max-h-[75vh] flex flex-col">
-            <h2 class="text-xl font-black tracking-tight text-white mb-4">★ Saved Spots</h2>
+            <h2 class="text-xl font-black tracking-tight text-white mb-4">Saved Spots</h2>
             <div id="savedList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-sm"></div>
             <button onclick="closeModal('savedModal')" class="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-medium p-3 rounded-xl text-sm transition mt-4">Close</button>
         </div>
@@ -858,5 +858,4 @@
         }
     </script>
 </body>
-</html>
 </html>
